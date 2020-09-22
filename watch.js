@@ -32,6 +32,11 @@ function endWatcher(watcher) {
   });
 }
 
+async function executeAt(cb, ms) {
+  await sleep(ms);
+  cb();
+}
+
 function exists(path) {
   return new Promise((resolve, reject) => {
     fs.stat(path, (err, stats) => {
@@ -116,6 +121,10 @@ function prompt(message, defaultValue) {
   });
 }
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 function sum(filepath) {
   return new Promise((resolve, reject) => {
     fs.readFile(filepath, (err, content) => {
@@ -130,31 +139,44 @@ async function watchFiles(fileA, fileB) {
   await merge(fileA, fileB);
   let currentHash = await sum(fileA);
   let running = false;
-  const watchers = [[fileA, fileB], [fileB, fileA]].map(([src, dest]) =>
-    fs.watch(fs.path.dirname(src), async (event, filename) => {
-      //console.log({ src, event, filename });
-      if (
-        running ||
-        filename !== fs.path.basename(src) ||
-        event !== "change"
-      ) return;
-
+  const watchers = [[fileA, fileB], [fileB, fileA]].map(([src, dest]) => {
+    return fs.watch(fs.path.dirname(src), watcher);
+    function watcher(event, filename, force=false){
+      if (running && !force) return;
       running = true;
-      const hash = await sum(src);
-      if (hash !== currentHash) {
-        await fixLineEnding(src);
-        const srcContent = await fs.promises.readFile(src, "utf8");
-        const destContent = await fs.promises.readFile(dest, "utf8");
-        console.log(`\n\nfrom ${src}`)
-        diff.diffLines(destContent, srcContent).forEach(write_diff);
-        await fs.promises.copyFile(src, dest);
-        currentHash = hash;
-      }
-      running = false;
+      handleEvent(event, filename, src, dest, currentHash)
+      .then(newHash => {
+        running = false;
+        currentHash = newHash;
+      })
+      .catch(err => {
+        if (err.code === "EBUSY") return executeAt(() => watcher(event, filename, true), 200);
+        console.log(chalk.red("HANDLE EVENT ERROR"), err);
+        process.exit();
+      });
     }
-  ));
+  });
   console.log("Watching started.");
   await Promise.all(watchers.map(endWatcher));
+}
+
+async function handleEvent(event, filename, src, dest, currentHash) {
+  if (filename !== fs.path.basename(src) || event !== "change") return;
+
+  if (await sum(src) !== currentHash)
+    await fixLineEnding(src);
+
+  const hash = await sum(src);
+
+  if (hash !== currentHash) {
+    const srcContent = await fs.promises.readFile(src, "utf8");
+    const destContent = await fs.promises.readFile(dest, "utf8");
+    console.log(`\n\nfrom ${src}`)
+    diff.diffLines(destContent, srcContent).forEach(write_diff);
+    await fs.promises.copyFile(src, dest);
+  }
+
+  return hash;
 }
 
 function write_diff(chunk) {
