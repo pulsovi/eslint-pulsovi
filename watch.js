@@ -37,16 +37,14 @@ async function executeAt(cb, ms) {
   cb();
 }
 
-function exists(path) {
-  return new Promise((resolve, reject) => {
-    fs.stat(path, (err, stats) => {
-      if (err) {
-        if (err.code === "ENOENT") resolve(false);
-        else reject(err);
-      }
-      else resolve(stats);
-    })
-  });
+async function exists(path) {
+  try {
+    const stats = await fs.promises.stat(path);
+    return stats;
+  } catch(err) {
+    if (err.code === "ENOENT") return false;
+    else throw err;
+  }
 }
 
 async function fixLineEnding(filepath, le="\n") {
@@ -125,13 +123,9 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function sum(filepath) {
-  return new Promise((resolve, reject) => {
-    fs.readFile(filepath, (err, content) => {
-      if (err) reject(err);
-      else resolve(sha1(content));
-    })
-  });
+async function sum(filepath) {
+  const content = await fs.promises.readFile(filepath);
+  return sha1(content);
 }
 
 async function watchFiles(fileA, fileB) {
