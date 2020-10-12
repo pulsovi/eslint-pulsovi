@@ -9,13 +9,23 @@ const chalk = require("chalk");
 async function main() {
   const distFile = getDistFile();
   if (!await exists(distFile))
-    throw new Error("La création de fichier .eslintrc.json n'est pas encore prise en charge.");
+    await createEslintFile(distFile)
   const localFile = await getLocalFile(distFile);
   return watchFiles(distFile, localFile);
 }
 
 async function compareFiles(fileA, fileB) {
   return await sum(fileA) === await sum(fileB);
+}
+
+async function createEslintFile(path) {
+  const availableTypes = (await fs.promises.readdir(__dirname)
+    ).filter(name => name.endsWith(".eslintrc.json"));
+  let response;
+  while (!(response > 0 && response <= availableTypes.length))
+    response = await prompt("Select type :\n" + availableTypes.map((name, index) => `${index + 1}: ${name.slice(0, -14)} \n`).join(""));
+  const file = fs.path.resolve(__dirname, availableTypes[response - 1]);
+  await fs.promises.copyFile(file, path);
 }
 
 function endProcess(subprocess) {
