@@ -30,7 +30,7 @@ async function createEslintFile(path) {
 
 function endProcess(subprocess) {
   if (subprocess.exitCode !== null)
-    return promise.resolve(subprocess.exitCode);
+    return Promise.resolve(subprocess.exitCode);
   return new Promise(resolve => {
     subprocess.on('close', () => resolve(subprocess.exitCode));
   });
@@ -201,4 +201,4 @@ function write_diff(chunk) {
 
 main()
   .then(() => { console.log("end of main"); })
-  .catch(err => { console.log("Error on main :", err); });
+  .catch(err => { console.log("Error on main :", err, err.stack); });
