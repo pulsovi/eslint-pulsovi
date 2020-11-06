@@ -6,14 +6,6 @@ const readline = require('readline');
 const diff = require("diff");
 const chalk = require("chalk");
 
-async function main() {
-  const distFile = getDistFile();
-  if (!await exists(distFile))
-    await createEslintFile(distFile)
-  const localFile = await getLocalFile(distFile);
-  return watchFiles(distFile, localFile);
-}
-
 async function compareFiles(fileA, fileB) {
   return await sum(fileA) === await sum(fileB);
 }
@@ -90,6 +82,25 @@ async function getLocalFile(distFile) {
   return fs.path.resolve(__dirname, `${type}.eslintrc.json`);
 }
 
+async function handleEvent(event, filename, src, dest, currentHash) {
+  if (filename !== fs.path.basename(src) || event !== "change") return;
+
+  if (await sum(src) !== currentHash)
+    await fixLineEnding(src);
+
+  const hash = await sum(src);
+
+  if (hash !== currentHash) {
+    const srcContent = await fs.promises.readFile(src, "utf8");
+    const destContent = await fs.promises.readFile(dest, "utf8");
+    console.log(`\n\nfrom ${src}`)
+    diff.diffLines(destContent, srcContent).forEach(write_diff);
+    await fs.promises.copyFile(src, dest);
+  }
+
+  return hash;
+}
+
 function meld(fileA, fileB) {
   if (!process.env.PATH.split(":").includes("C:\\Program Files (x86)\\Meld\\lib"))
     process.env.PATH += ";C:\\Program Files (x86)\\Meld\\lib";
@@ -114,7 +125,6 @@ async function merge(fileA, fileB) {
   throw new Error("Uncompleted merge.");
 }
 
-
 function prompt(message, defaultValue) {
   return new Promise((resolve) => {
     const rl = readline.createInterface({
@@ -136,6 +146,14 @@ function sleep(ms) {
 async function sum(filepath) {
   const content = await fs.promises.readFile(filepath);
   return sha1(content);
+}
+
+async function watch() {
+  const distFile = getDistFile();
+  if (!await exists(distFile))
+    await createEslintFile(distFile)
+  const localFile = await getLocalFile(distFile);
+  return watchFiles(distFile, localFile);
 }
 
 async function watchFiles(fileA, fileB) {
@@ -164,25 +182,6 @@ async function watchFiles(fileA, fileB) {
   await Promise.all(watchers.map(endWatcher));
 }
 
-async function handleEvent(event, filename, src, dest, currentHash) {
-  if (filename !== fs.path.basename(src) || event !== "change") return;
-
-  if (await sum(src) !== currentHash)
-    await fixLineEnding(src);
-
-  const hash = await sum(src);
-
-  if (hash !== currentHash) {
-    const srcContent = await fs.promises.readFile(src, "utf8");
-    const destContent = await fs.promises.readFile(dest, "utf8");
-    console.log(`\n\nfrom ${src}`)
-    diff.diffLines(destContent, srcContent).forEach(write_diff);
-    await fs.promises.copyFile(src, dest);
-  }
-
-  return hash;
-}
-
 function write_diff(chunk) {
   var value = chunk.value;
   if (chunk.added) {
@@ -199,6 +198,6 @@ function write_diff(chunk) {
   }
 }
 
-main()
-  .then(() => { console.log("end of main"); })
-  .catch(err => { console.log("Error on main :", err, err.stack); });
+module.exports = {
+  watch,
+};

@@ -1,7 +1,26 @@
 {
+  "name": "eslint-pulsovi",
+  "version": "1.0.0",
+  "description": "my own eslint rules",
+  "main": "index.js",
+  "bin": {
+    "eslint-pulsovi-watch": "./bin/eslint-watch.js"
+  },
+  "scripts": {
+    "watch": "node ./bin/eslint-watch"
+  },
+  "repository": "https://github.com/pulsovi/eslint-pulsovi.git",
+  "author": "David GABISON <david.gabison@outlook.com>",
+  "license": "MIT",
+  "private": false,
   "dependencies": {
     "chalk": "^4.1.0",
     "diff": "^4.0.2",
     "sha1": "^1.1.1"
+  },
+  "devDependencies": {
+    "eslint": "^7.12.1",
+    "eslint-config-airbnb": "^18.2.0",
+    "eslint-plugin-import": "^2.22.1"
   }
 }
