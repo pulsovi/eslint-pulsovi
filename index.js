@@ -5,6 +5,9 @@ const childProcess = require('child_process');
 const readline = require('readline');
 const diff = require("diff");
 const chalk = require("chalk");
+const JSONParse = require('json-parse-safe');
+
+const [, , eslintfile] = process.argv;
 
 async function compareFiles(fileA, fileB) {
   return await sum(fileA) === await sum(fileB);
@@ -59,14 +62,30 @@ async function fixLineEnding(filepath, le="\n") {
 }
 
 function getDistFile() {
-  if (process.argv.length < 3) {
-    return fs.path.resolve(".eslintrc.json");
-  }
+  if (eslintfile)
+    return fs.path.resolve(eslintfile);
+  return fs.path.resolve(".eslintrc.json");
 }
 
 async function getEslintType(distFile) {
   const fileContent = await fs.promises.readFile(distFile, "utf8");
-  const fileValue = JSON.parse(fileContent);
+  const { error, value: fileValue } = JSONParse(fileContent);
+
+  if (error) {
+    const { message } = error;
+
+    error.message = `\nUnable to parse your eslint config file\n${error.message}`;
+    if ((/^Unexpected token , in JSON at position \d+$/u).test(message)) {
+      const position = error.message.split(" ").pop();
+      const lines = fileContent.slice(0, position).split("\n");
+      const line = lines.length;
+      const pos = lines.pop().length + 1;
+
+      error.message += `\n    ${distFile}:${line}:${pos}`;
+    }
+    throw error;
+  }
+
   if (fileValue.env.browser) {
     if (fileValue.env.node) return "node-browser";
     if (fileValue.plugins.includes("react")) return "react";

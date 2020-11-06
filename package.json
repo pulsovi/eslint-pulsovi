@@ -16,6 +16,7 @@
   "dependencies": {
     "chalk": "^4.1.0",
     "diff": "^4.0.2",
+    "json-parse-safe": "^2.0.0",
     "sha1": "^1.1.1"
   },
   "devDependencies": {
