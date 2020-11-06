@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const watcher = require("../index");
 
 watcher.watch()
