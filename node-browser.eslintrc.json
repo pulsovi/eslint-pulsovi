@@ -280,13 +280,13 @@
     "prefer-regex-literals": "error",
     "prefer-rest-params": "error",
     "prefer-spread": "error",
-    "prefer-template": "error",,
+    "prefer-template": "error",
     "quote-props": ["error", "as-needed", {
       "keywords": true,
       "unnecessary": false,
       "numbers": true
     }],
-    "quotes": ["warn", "single", {"avoidEscape": true}]
+    "quotes": ["warn", "single", {"avoidEscape": true}],
     "radix": "error",
     "require-await": "error",
     "require-jsdoc": "warn",
